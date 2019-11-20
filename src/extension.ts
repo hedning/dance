@@ -72,6 +72,9 @@ export class Extension implements vscode.Disposable {
 
     this.modeMap.set(editor.document, mode)
 
+    const config = vscode.workspace.getConfiguration('editor')
+    const lineNumbersOff = config.get<string>('lineNumbers') === 'off'
+
     if (mode === Mode.Insert) {
       const file = this.files.get(editor.document)
 
@@ -82,11 +85,11 @@ export class Extension implements vscode.Disposable {
 
       this.clearDecorations(editor)
 
-      editor.options.lineNumbers = vscode.TextEditorLineNumbersStyle.On
+      editor.options.lineNumbers = vscode.TextEditorLineNumbersStyle[lineNumbersOff ? 'Off' : 'On']
     } else {
       this.setDecorations(editor)
+      editor.options.lineNumbers = vscode.TextEditorLineNumbersStyle[lineNumbersOff ? 'Off' : 'Relative']
 
-      editor.options.lineNumbers = vscode.TextEditorLineNumbersStyle.Relative
     }
 
     if (vscode.window.activeTextEditor === editor)
