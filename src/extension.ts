@@ -85,11 +85,14 @@ export class Extension implements vscode.Disposable {
 
       this.clearDecorations(editor)
 
+      editor.options.cursorStyle = vscode.TextEditorCursorStyle.Line
       editor.options.lineNumbers = vscode.TextEditorLineNumbersStyle[lineNumbersOff ? 'Off' : 'On']
     } else {
       this.setDecorations(editor)
       editor.options.lineNumbers = vscode.TextEditorLineNumbersStyle[lineNumbersOff ? 'Off' : 'Relative']
 
+      if (editor.selection.isEmpty)
+        editor.options.cursorStyle = vscode.TextEditorCursorStyle.Block
     }
 
     if (vscode.window.activeTextEditor === editor)
@@ -194,8 +197,25 @@ export class Extension implements vscode.Disposable {
 
       this.subscriptions.push(
         vscode.window.onDidChangeTextEditorSelection(e => {
-          if (this.modeMap.get(e.textEditor.document) !== Mode.Insert)
-            this.setDecorations(e.textEditor)
+          const editor = e.textEditor
+          const mode = this.modeMap.get(editor.document)
+          if (mode !== Mode.Insert)
+            this.setDecorations(editor)
+
+          const selection = e.selections[0]
+          if (mode === Mode.Normal && selection.isEmpty) {
+            // Use block cursor when selections are empty
+            editor.options.cursorStyle = vscode.TextEditorCursorStyle.Block
+          } else if (false && mode === Mode.Normal &&
+            selection.isSingleLine &&
+            selection.end.character - selection.start.character === 1
+            ) {
+              // This requires support from movement 
+              editor.selections = editor.selections.map(x => 
+                new vscode.Selection(x.start, x.start))
+          } else {
+            editor.options.cursorStyle = vscode.TextEditorCursorStyle.Line
+          }
         }),
 
         vscode.workspace.onDidChangeTextDocument(e => {
